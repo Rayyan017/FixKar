@@ -11,8 +11,10 @@ from typing import Dict
 import hashlib
 import sqlite3
 
-# Ensure imports resolve
-sys.path.insert(0, os.path.dirname(__file__))
+# Ensure imports resolve using absolute paths
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
 
 from db.setup import init_db, get_connection
 from patterns.factory import FaultReportFactory
@@ -401,13 +403,18 @@ def get_analytics():
 def get_history():
     return fetch_job_history()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+static_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "static"))
+app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 @app.get("/")
 def serve_frontend():
-    return FileResponse("static/index.html")
+    index_path = os.path.join(static_path, "index.html")
+    return FileResponse(index_path)
 
 if __name__ == "__main__":
     import uvicorn
-    os.makedirs("static", exist_ok=True)
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Create static dir if it doesn't exist
+    os.makedirs(static_path, exist_ok=True)
+    # Get port from environment or default to 8000
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
